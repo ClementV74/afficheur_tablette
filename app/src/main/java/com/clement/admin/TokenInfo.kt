@@ -1,5 +1,6 @@
 package com.clement.admin
 
+import android.util.Base64
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -13,12 +14,17 @@ class TokenInfo {
 
     // Méthode pour récupérer le token depuis l'API
     private suspend fun fetchApiToken(): String? = withContext(Dispatchers.IO) {
-        val tokenUrl = "https://feegaffe.fr/token/get_token.php?user=clement&password=a7f8b3c2d5e6f9g4h7j8k9l0m1n2o3p"
+        val tokenUrl = "https://feegaffe.fr/smart_screen/get_token_secure"
 
         try {
             val url = URL(tokenUrl)
             val connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "GET"
+
+            // Ajouter les en-têtes d'authentification Basic
+            val userCredentials = "clement:a7f8b3c2d5e6f9g4h7j8k9l0m1n2o3p"
+            val basicAuth = "Basic " + Base64.encodeToString(userCredentials.toByteArray(), Base64.NO_WRAP)
+            connection.setRequestProperty("Authorization", basicAuth)
 
             // Lire le contenu de la réponse
             val responseCode = connection.responseCode
@@ -48,8 +54,7 @@ class TokenInfo {
     // Méthode pour obtenir le token, récupère le token si nécessaire
     suspend fun getToken(): String {
         if (apiToken == null) {
-            apiToken = fetchApiToken()
-                ?: throw Exception("Erreur lors de la récupération du token.")
+            apiToken = fetchApiToken() ?: throw Exception("Erreur lors de la récupération du token.")
         }
         return apiToken!!
     }

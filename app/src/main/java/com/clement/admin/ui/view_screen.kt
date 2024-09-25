@@ -1,4 +1,5 @@
 package com.clement.admin.ui
+import com.clement.admin.TokenInfo
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -12,7 +13,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.clement.admin.Screen
-import com.clement.admin.TokenInfo
 import com.clement.admin.fetchScreensData
 
 @Composable
