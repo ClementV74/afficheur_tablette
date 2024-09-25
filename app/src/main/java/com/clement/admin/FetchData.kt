@@ -7,6 +7,9 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.URL
 
+// Instance de TokenInfo pour gérer le token
+private val tokenInfo = TokenInfo()
+
 fun fetchWeatherData(url: String, onResult: (WeatherData) -> Unit) {
     val handler = Handler(Looper.getMainLooper())
     Thread {

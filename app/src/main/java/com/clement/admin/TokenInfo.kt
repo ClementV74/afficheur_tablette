@@ -3,7 +3,10 @@ package com.clement.admin
 import android.util.Base64
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineScope
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -51,8 +54,21 @@ class TokenInfo {
         }
     }
 
-    // Méthode pour obtenir le token, récupère le token si nécessaire
+    // Méthode pour démarrer le rafraîchissement du token
+    fun startTokenRefresh(onTokenChanged: (String) -> Unit) {
+        CoroutineScope(Dispatchers.IO).launch {
+            while (true) {
+                apiToken = fetchApiToken() ?: throw Exception("Erreur lors de la récupération du token.")
+                Log.d("TokenInfo", "Token rafraîchi : $apiToken")
+                onTokenChanged(apiToken!!) // Appeler le callback lorsque le token change
+                delay(10000) // Délai de 10 secondes
+            }
+        }
+    }
+
+    // Méthode pour obtenir le token
     suspend fun getToken(): String {
+        // Si le token est nul, lancez le rafraîchissement
         if (apiToken == null) {
             apiToken = fetchApiToken() ?: throw Exception("Erreur lors de la récupération du token.")
         }
