@@ -69,6 +69,9 @@ dependencies {
     // Lifecycle
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.1")
 
+    implementation ("androidx.compose.ui:ui:1.3.0")
+    implementation ("androidx.compose.animation:animation:1.3.0")
+
     // Retrofit
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
@@ -79,6 +82,10 @@ dependencies {
     implementation("androidx.webkit:webkit:1.5.0")
 
     implementation("io.coil-kt:coil-compose:2.0.0")
+
+    //.env
+
+    implementation("io.github.cdimascio:dotenv-kotlin:6.4.1")
 
 
     // Testing
