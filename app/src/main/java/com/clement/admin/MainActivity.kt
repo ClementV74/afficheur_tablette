@@ -34,32 +34,40 @@ import androidx.compose.animation.core.*
 import androidx.compose.animation.animateColorAsState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
+
+
 
 
 class MainActivity : ComponentActivity() {
-    private lateinit var tokenInfo: TokenInfo
+    private lateinit var tokenInfo: TokenInfo // Instance de TokenInfo pour gérer le token
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+    override fun onCreate(savedInstanceState: Bundle?) { // Appelé lors de la création de l'activité
         super.onCreate(savedInstanceState)
-        window.decorView.systemUiVisibility = (
+        window.decorView.systemUiVisibility = ( // Masquer la barre de statut et la barre de navigation
                 View.SYSTEM_UI_FLAG_FULLSCREEN
                         or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                         or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                 )
-        actionBar?.hide()
+        actionBar?.hide() // Masquer la barre d'action
 
-        tokenInfo = TokenInfo()
+        tokenInfo = TokenInfo() // Initialiser l'instance de TokenInfo
 
-        setContent {
+        setContent { // Définir le contenu de l'activité
             AdminTheme {
-                var selectedScreenId by remember { mutableStateOf<String?>(null) }
+                var selectedScreenId by remember { mutableStateOf<String?>(null) } // ID de l'écran sélectionné
 
-                ViewScreen(onScreenSelected = { screenId ->
-                    selectedScreenId = screenId
+                ViewScreen(onScreenSelected = { screenId -> // Afficher l'écran de sélection
+                    selectedScreenId = screenId // Mettre à jour l'ID de l'écran sélectionné
                 })
 
-                selectedScreenId?.let {
-                    SmartDisplayScreen(it)
+                selectedScreenId?.let { // Si un écran est sélectionné, afficher l'écran correspondant
+                    SmartDisplayScreen(it) // Afficher l'écran intelligent
                 }
             }
         }
@@ -70,9 +78,9 @@ class MainActivity : ComponentActivity() {
 
 
     @Composable
-    fun SmartDisplayScreen(idAfficheur: String) {
-        val tokenInfo = remember { TokenInfo() }
-        var token by remember { mutableStateOf<String?>(null) }
+    fun SmartDisplayScreen(idAfficheur: String) { // Composable pour afficher l'écran intelligent
+        val tokenInfo = remember { TokenInfo() } // Instance de TokenInfo pour gérer le token
+        var token by remember { mutableStateOf<String?>(null) } // Token d'authentification
 
         // Lancer une coroutine pour surveiller les changements du token
         LaunchedEffect(Unit) {
@@ -88,29 +96,29 @@ class MainActivity : ComponentActivity() {
         val alertUrl = remember(token) { "https://feegaffe.fr/smart_screen/alerte.php?token=${token}&action=get_status" }
         val enligne = remember(token) { "https://feegaffe.fr/smart_screen/change_status.php?id_afficheur=$idAfficheur&token=${token}" }
 
-        var weatherData by remember { mutableStateOf(WeatherData()) }
-        var infoList by remember { mutableStateOf(listOf<InfoData>()) }
-        var currentIndex by remember { mutableStateOf(0) }
-        var currentTime by remember { mutableStateOf("") }
-        var alertStatus by remember { mutableStateOf(AlertStatus()) }
+        var weatherData by remember { mutableStateOf(WeatherData()) } // Données météorologiques
+        var infoList by remember { mutableStateOf(listOf<InfoData>()) } // Liste des données d'information
+        var currentIndex by remember { mutableStateOf(0) } // Index de l'élément actuel
+        var currentTime by remember { mutableStateOf("") } // Heure actuelle
+        var alertStatus by remember { mutableStateOf(AlertStatus()) } // État des alertes
 
         // Fonction pour vérifier les alertes
-        fun checkAlertStatus(alert: AlertStatus): Boolean {
-            return alert.incendie == "1" || alert.intrusion == "1" || alert.gaz == "1"
+        fun checkAlertStatus(alert: AlertStatus): Boolean { // Vérifier si une alerte est activée
+            return alert.incendie == "1" || alert.intrusion == "1" || alert.gaz == "1" // Retourne vrai si une alerte est activée
         }
 
-        suspend fun checkOnlineStatus(url: String) {
-            withContext(Dispatchers.IO) {
+        suspend fun checkOnlineStatus(url: String) { // Vérifier l'état en ligne
+            withContext(Dispatchers.IO) { // Exécuter en arrière-plan
                 try {
-                    val connection = URL(url).openConnection() as HttpURLConnection
-                    connection.requestMethod = "GET"
-                    connection.connectTimeout = 5000
-                    connection.readTimeout = 5000
+                    val connection = URL(url).openConnection() as HttpURLConnection // Ouvrir une connexion HTTP
+                    connection.requestMethod = "GET" // Utiliser la méthode GET
+                    connection.connectTimeout = 20000
+                    connection.readTimeout = 20000
 
                     if (connection.responseCode == HttpURLConnection.HTTP_OK) {
                         // La requête a réussi. Vous pouvez traiter la réponse si nécessaire
-                        val inputStream = connection.inputStream
-                        val response = inputStream.bufferedReader().use { it.readText() }
+                        val inputStream = connection.inputStream // Lire la réponse
+                        val response = inputStream.bufferedReader().use { it.readText() } // Convertir en chaîne
                         Log.d("checkOnlineStatus", "Réponse: $response")
                     } else {
                         Log.e("checkOnlineStatus", "Erreur HTTP: ${connection.responseCode}")
@@ -123,9 +131,9 @@ class MainActivity : ComponentActivity() {
         }
 
         // Lancer une coroutine pour vérifier l'état en ligne toutes les 10 secondes
-        LaunchedEffect(token) {
-            while (token != null) {
-                token?.let {
+        LaunchedEffect(token) { // Lancer une coroutine pour surveiller les changements du token
+            while (token != null) { // Tant que le token est défini
+                token?.let { // Si le token n'est pas nul
                     checkOnlineStatus(enligne) // Appeler la fonction ici
                 }
                 delay(10000) // Attendre 10 secondes
@@ -143,12 +151,12 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        LaunchedEffect(currentIndex) {
+        LaunchedEffect(currentIndex) { // Lancer une coroutine pour changer l'élément actuel
             delay(10000)
             currentIndex = (currentIndex + 1) % infoList.size
         }
 
-        LaunchedEffect(Unit) {
+        LaunchedEffect(Unit) { // Lancer une coroutine pour mettre à jour l'heure actuelle
             while (true) {
                 currentTime = getCurrentTime()
                 delay(1000)
@@ -164,7 +172,7 @@ class MainActivity : ComponentActivity() {
                 else -> ""
             }
 
-            Box(
+            Box( // Afficher un écran rouge avec le message d'alerte
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Red), // Écran rouge
@@ -177,7 +185,7 @@ class MainActivity : ComponentActivity() {
                     fontWeight = FontWeight.Bold
                 )
             }
-        } else {
+        } else { // Sinon, afficher l'écran normal
             // Dégradé de couleurs animé
             val color1 = remember { Color(0xFF6A7B8A) } // Gris-bleu
             val color2 = remember { Color(0xFF9DA5B1) } // Gris clair
@@ -194,6 +202,14 @@ class MainActivity : ComponentActivity() {
                     .fillMaxSize()
                     .background(animatedColor) // Utiliser uniquement une couleur ici
             ) {
+                // Ajouter l'image d'arrière-plan
+                Image(
+                    painter = painterResource(id = R.drawable.background), // Remplace `background` par ton nom d'image
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop, // Pour s'adapter à l'écran
+                    modifier = Modifier.fillMaxSize() // Remplir toute la taille de l'écran
+                )
+
                 Row(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
@@ -210,22 +226,24 @@ class MainActivity : ComponentActivity() {
                         Image(
                             painter = rememberImagePainter(weatherData.icon),
                             contentDescription = "Icône météo",
-                            modifier = Modifier.size(60.dp).align(Alignment.CenterHorizontally)
+                            modifier = Modifier.size(60.dp).align(Alignment.CenterHorizontally).padding(top = 8.dp)
                         )
                     }
 
-                    if (infoList.isNotEmpty()) {
-                        val currentItem = infoList[currentIndex]
+                    if (infoList.isNotEmpty()) { // Si la liste d'informations n'est pas vide
+                        val currentItem = infoList[currentIndex] // Obtenir l'élément actuel
                         Text(
                             text = currentItem.nom_salle,
                             color = Color.White,
                             fontSize = 40.sp,
                             modifier = Modifier.align(Alignment.CenterVertically)
+
+
                         )
                     }
                 }
 
-                Box(modifier = Modifier.fillMaxSize().padding(top = 100.dp)) {
+                Box(modifier = Modifier.fillMaxSize().padding(top = 100.dp)) { // Afficher le contenu principal
                     if (infoList.isNotEmpty()) {
                         val currentItem = infoList[currentIndex]
                         if (currentItem.type_info == "message") {
@@ -234,12 +252,14 @@ class MainActivity : ComponentActivity() {
                                 color = Color.White,
                                 fontSize = 46.sp,
                                 fontWeight = FontWeight.Bold,
-                                modifier = Modifier.align(Alignment.Center)
+                                //mets le texte centre en bas de l'écran mets un peu en hauteur quand meme
+                                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 130.dp)
+
                             )
                         } else if (currentItem.type_info == "image") {
-                            if (currentItem.contenu.endsWith(".mp4")) {
-                                val context = LocalContext.current
-                                AndroidView(
+                            if (currentItem.contenu.endsWith(".mp4")) { // Si c'est une vidéo
+                                val context = LocalContext.current // Obtenir le contexte actuel
+                                AndroidView( // Utiliser AndroidView pour afficher la vidéo
                                     factory = {
                                         VideoView(context).apply {
                                             setVideoPath(currentItem.contenu)
@@ -251,10 +271,12 @@ class MainActivity : ComponentActivity() {
                                 )
                             } else {
                                 Image(
-                                    painter = rememberImagePainter(currentItem.contenu),
+                                    painter = rememberImagePainter(currentItem.contenu), // Utiliser Coil pour charger l'image
                                     contentDescription = null,
                                     contentScale = ContentScale.Fit,
-                                    modifier = Modifier.fillMaxSize()
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(RoundedCornerShape(16.dp)) // Appliquer des coins arrondis à l'image
                                 )
                             }
                         }
@@ -288,8 +310,8 @@ class MainActivity : ComponentActivity() {
             try {
                 val connection = URL(url).openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
-                connection.connectTimeout = 5000
-                connection.readTimeout = 5000
+                connection.connectTimeout = 20000
+                connection.readTimeout = 20000
 
                 if (connection.responseCode == HttpURLConnection.HTTP_OK) {
                     val inputStream = connection.inputStream
