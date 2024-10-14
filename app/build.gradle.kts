@@ -69,6 +69,11 @@ dependencies {
     // Lifecycle
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.1")
 
+    //gif
+    implementation("io.coil-kt:coil-compose:2.1.0")
+    implementation("io.coil-kt:coil-gif:2.1.0") // Dépendance pour les GIFs
+
+
     implementation ("androidx.compose.ui:ui:1.3.0")
     implementation ("androidx.compose.animation:animation:1.3.0")
 

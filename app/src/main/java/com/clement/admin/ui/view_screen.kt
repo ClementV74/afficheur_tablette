@@ -14,6 +14,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.clement.admin.Screen
 import com.clement.admin.fetchScreensData
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults.buttonElevation
+
 
 @Composable
 fun ViewScreen(onScreenSelected: (String) -> Unit) {
@@ -22,7 +25,6 @@ fun ViewScreen(onScreenSelected: (String) -> Unit) {
         value = try {
             tokenInfo.getToken()
         } catch (e: Exception) {
-            // Gestion des erreurs lors de la récupération du token
             null
         }
     }
@@ -31,7 +33,7 @@ fun ViewScreen(onScreenSelected: (String) -> Unit) {
 
     LaunchedEffect(token.value) {
         token.value?.let {
-            val screensUrl = "https://feegaffe.fr/smart_screen/ecraninfo.php?token=${it}"
+            val screensUrl = "https://vabre.ch/smart_screen/ecraninfo.php?token=${it}"
             fetchScreensData(screensUrl) { data ->
                 screens = data
             }
@@ -41,14 +43,20 @@ fun ViewScreen(onScreenSelected: (String) -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black),  // Définit une couleur de fond
-        contentAlignment = Alignment.Center  // Centre le contenu dans la vue
+            .background(Color(0xFF121212)),
+        contentAlignment = Alignment.Center
     ) {
-        Column {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(16.dp)
+        ) {
             screens.forEach { screen ->
                 Button(
                     onClick = { onScreenSelected(screen.id_afficheur) },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFBB86FC)),
+                    shape = RoundedCornerShape(8.dp), // Correct importation de RoundedCornerShape
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp), // Correction de l'élévation avec buttonElevation
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 8.dp)
@@ -56,9 +64,11 @@ fun ViewScreen(onScreenSelected: (String) -> Unit) {
                     Text(
                         text = screen.nom_salle,
                         color = Color.White,
-                        fontSize = 20.sp
+                        fontSize = 18.sp,
+                        modifier = Modifier.padding(8.dp)
                     )
                 }
+                Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }

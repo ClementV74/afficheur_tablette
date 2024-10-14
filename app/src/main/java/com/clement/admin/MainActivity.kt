@@ -1,48 +1,53 @@
 package com.clement.admin
 
+import android.os.Build
 import android.os.Bundle
-import android.os.Looper
 import android.util.Log
 import android.view.View
+import android.widget.VideoView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import org.json.JSONObject
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.net.HttpURLConnection
-import java.net.URL
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.rememberImagePainter
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import com.clement.admin.R
+import androidx.compose.ui.viewinterop.AndroidView
+import coil.ImageLoader
+import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
+import coil.decode.GifDecoder
+import coil.request.ImageRequest
+import coil.size.Size
 import com.clement.admin.ui.ViewScreen
 import com.clement.admin.ui.theme.AdminTheme
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import android.widget.VideoView
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.animation.core.*
-import androidx.compose.animation.animateColorAsState
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
-import androidx.compose.ui.res.painterResource
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.shape.RoundedCornerShape
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.unit.dp
-
-
-
+import androidx.compose.runtime.Composable
 
 class MainActivity : ComponentActivity() {
     private lateinit var tokenInfo: TokenInfo // Instance de TokenInfo pour gérer le token
@@ -71,16 +76,13 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-
-
     }
-
-
 
     @Composable
     fun SmartDisplayScreen(idAfficheur: String) { // Composable pour afficher l'écran intelligent
         val tokenInfo = remember { TokenInfo() } // Instance de TokenInfo pour gérer le token
         var token by remember { mutableStateOf<String?>(null) } // Token d'authentification
+        var dailyPhrase by remember { mutableStateOf("") }
 
         // Lancer une coroutine pour surveiller les changements du token
         LaunchedEffect(Unit) {
@@ -91,10 +93,10 @@ class MainActivity : ComponentActivity() {
         }
 
         // URL qui dépend du token
-        val infoUrl = remember(token) { "https://feegaffe.fr/smart_screen/api.php?id_afficheur=$idAfficheur&token=${token}" }
-        val weatherUrl = remember(token) { "https://feegaffe.fr/smart_screen/meteo/weather_api.php" }
-        val alertUrl = remember(token) { "https://feegaffe.fr/smart_screen/alerte.php?token=${token}&action=get_status" }
-        val enligne = remember(token) { "https://feegaffe.fr/smart_screen/change_status.php?id_afficheur=$idAfficheur&token=${token}" }
+        val infoUrl = remember(token) { "https://vabre.ch/smart_screen/api.php?id_afficheur=$idAfficheur&token=${token}" }
+        val weatherUrl = remember(token) { "https://vabre.ch/smart_screen/meteo/weather_api.php" }
+        val alertUrl = remember(token) { "https://vabre.ch/smart_screen/alerte.php?token=${token}&action=get_status" }
+        val enligne = remember(token) { "https://vabre.ch/smart_screen/change_status.php?id_afficheur=$idAfficheur&token=${token}" }
 
         var weatherData by remember { mutableStateOf(WeatherData()) } // Données météorologiques
         var infoList by remember { mutableStateOf(listOf<InfoData>()) } // Liste des données d'information
@@ -105,6 +107,30 @@ class MainActivity : ComponentActivity() {
         // Fonction pour vérifier les alertes
         fun checkAlertStatus(alert: AlertStatus): Boolean { // Vérifier si une alerte est activée
             return alert.incendie == "1" || alert.intrusion == "1" || alert.gaz == "1" // Retourne vrai si une alerte est activée
+        }
+
+        suspend fun fetchDailyPhrase(url: String, onSuccess: (String) -> Unit) {
+            withContext(Dispatchers.IO) {
+                try {
+                    val connection = URL(url).openConnection() as HttpURLConnection
+                    connection.requestMethod = "GET"
+                    connection.connectTimeout = 20000
+                    connection.readTimeout = 20000
+
+                    if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                        val inputStream = connection.inputStream
+                        val response = inputStream.bufferedReader().use { it.readText() }
+                        val json = JSONObject(response)
+                        val phrase = json.getString("phrase") // Récupérer la phrase
+                        onSuccess(phrase)
+                    } else {
+                        Log.e("fetchDailyPhrase", "Erreur HTTP: ${connection.responseCode}")
+                    }
+                    connection.disconnect()
+                } catch (e: Exception) {
+                    Log.e("fetchDailyPhrase", "Erreur lors de la récupération de la phrase du jour", e)
+                }
+            }
         }
 
         suspend fun checkOnlineStatus(url: String) { // Vérifier l'état en ligne
@@ -127,6 +153,16 @@ class MainActivity : ComponentActivity() {
                 } catch (e: Exception) {
                     Log.e("checkOnlineStatus", "Erreur lors de la vérification de l'état en ligne", e)
                 }
+            }
+        }
+
+        LaunchedEffect(token) {
+            while (token != null) {
+                token?.let {
+                    val dailyPhraseUrl = "https://vabre.ch/smart_screen/phrase_du_jour?token=$token"
+                    fetchDailyPhrase(dailyPhraseUrl) { phrase -> dailyPhrase = phrase }
+                }
+                delay(10000) // Mise à jour toutes les 10 secondes
             }
         }
 
@@ -162,6 +198,26 @@ class MainActivity : ComponentActivity() {
                 delay(1000)
             }
         }
+
+        fun getCurrentDay(): String {
+            val dayFormat = java.text.SimpleDateFormat("EEEE", java.util.Locale.getDefault())
+            return dayFormat.format(java.util.Date())
+        }
+
+
+        fun translateDayToFrench(day: String): String {
+            return when (day.lowercase()) {
+                "monday" -> "Lundi"
+                "tuesday" -> "Mardi"
+                "wednesday" -> "Mercredi"
+                "thursday" -> "Jeudi"
+                "friday" -> "Vendredi"
+                "saturday" -> "Samedi"
+                "sunday" -> "Dimanche"
+                else -> day
+            }
+        }
+
 
         // Si une alerte est activée, afficher un écran rouge avec l'alerte correspondante
         if (checkAlertStatus(alertStatus)) {
@@ -202,12 +258,20 @@ class MainActivity : ComponentActivity() {
                     .fillMaxSize()
                     .background(animatedColor) // Utiliser uniquement une couleur ici
             ) {
-                // Ajouter l'image d'arrière-plan
-                Image(
-                    painter = painterResource(id = R.drawable.background), // Remplace `background` par ton nom d'image
+                // Ajouter le gif d'arrière-plan
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(R.drawable.backgroundgif) // Assurez-vous que c'est bien un GIF
+                        .crossfade(true)
+                        .size(Size.ORIGINAL)
+                        .build(),
                     contentDescription = null,
-                    contentScale = ContentScale.Crop, // Pour s'adapter à l'écran
-                    modifier = Modifier.fillMaxSize() // Remplir toute la taille de l'écran
+                    modifier = Modifier.fillMaxSize(),
+                    imageLoader = ImageLoader.Builder(LocalContext.current)
+                        .components {
+                            add(GifDecoder.Factory()) // Ajout du décoder pour les GIFs
+                        }
+                        .build()
                 )
 
                 Row(
@@ -224,7 +288,7 @@ class MainActivity : ComponentActivity() {
                             fontSize = 20.sp
                         )
                         Image(
-                            painter = rememberImagePainter(weatherData.icon),
+                            painter = rememberAsyncImagePainter(weatherData.icon),
                             contentDescription = "Icône météo",
                             modifier = Modifier.size(60.dp).align(Alignment.CenterHorizontally).padding(top = 8.dp)
                         )
@@ -236,9 +300,8 @@ class MainActivity : ComponentActivity() {
                             text = currentItem.nom_salle,
                             color = Color.White,
                             fontSize = 40.sp,
+
                             modifier = Modifier.align(Alignment.CenterVertically)
-
-
                         )
                     }
                 }
@@ -252,9 +315,15 @@ class MainActivity : ComponentActivity() {
                                 color = Color.White,
                                 fontSize = 46.sp,
                                 fontWeight = FontWeight.Bold,
-                                //mets le texte centre en bas de l'écran mets un peu en hauteur quand meme
                                 modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 130.dp)
-
+                            )
+                            // Afficher la phrase du jour
+                            Text(
+                                text = dailyPhrase,
+                                color = Color.White,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 50.dp) // Positionner en bas
                             )
                         } else if (currentItem.type_info == "image") {
                             if (currentItem.contenu.endsWith(".mp4")) { // Si c'est une vidéo
@@ -271,12 +340,13 @@ class MainActivity : ComponentActivity() {
                                 )
                             } else {
                                 Image(
-                                    painter = rememberImagePainter(currentItem.contenu), // Utiliser Coil pour charger l'image
+                                    painter = rememberAsyncImagePainter(currentItem.contenu), // Utiliser Coil pour charger l'image
                                     contentDescription = null,
                                     contentScale = ContentScale.Fit,
                                     modifier = Modifier
-                                        .fillMaxSize()
-                                        .clip(RoundedCornerShape(16.dp)) // Appliquer des coins arrondis à l'image
+                                        .align(Alignment.Center)
+                                        .size(400.dp) // Ajuster la taille de l'image
+                                        .clip (RoundedCornerShape(30.dp)) // Appliquer des coins arrondis à l'image
                                 )
                             }
                         }
@@ -285,17 +355,24 @@ class MainActivity : ComponentActivity() {
 
                 Text(
                     text = currentTime,
+
+                    fontFamily = FontFamily(Font(R.font.anurati_regular)),
                     color = Color.White,
-                    fontSize = 72.sp,
+                    fontSize = 52.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.align(Alignment.TopCenter).padding(top = 20.dp)
+                    modifier = Modifier.align(Alignment.TopCenter).padding(top = 80.dp)
+                )
+                Text(
+                    text = translateDayToFrench(getCurrentDay()), // Utilisez une fonction pour obtenir le jour actuel
+                    fontFamily = FontFamily(Font(R.font.anurati_regular)),
+                    color = Color.White,
+                    fontSize = 46.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.TopCenter).padding(top = 10.dp)
                 )
             }
         }
     }
-
-
-
 
     // Modèle de données pour les alertes
     data class AlertStatus(
@@ -334,4 +411,5 @@ class MainActivity : ComponentActivity() {
                 Log.e("fetchAlertData", "Erreur lors de la récupération des alertes", e)
             }
         }
-    }}
+    }
+}

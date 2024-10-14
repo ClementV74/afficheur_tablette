@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    <!-- Indiquer que l'application peut fonctionner sans écran tactile -->
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <uses-feature android:name="android.software.leanback" android:required="false" />
 
     <application
         android:allowBackup="true"
@@ -11,6 +15,7 @@
         android:icon="@mipmap/ic_launcher"
         android:label="Smart Screen"
         android:roundIcon="@mipmap/ic_launcher_round"
+        android:banner="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:theme="@style/Theme.Admin"
         tools:targetApi="31">
@@ -24,7 +29,9 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
+                <!-- Pour les appareils TV -->
                 <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
     </application>

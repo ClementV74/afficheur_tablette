@@ -17,7 +17,7 @@ class TokenInfo {
 
     // Méthode pour récupérer le token depuis l'API
     private suspend fun fetchApiToken(): String? = withContext(Dispatchers.IO) {
-        val tokenUrl = "https://feegaffe.fr/smart_screen/get_token_secure"
+        val tokenUrl = "https://vabre.ch/smart_screen/get_token_secure"
 
         try {
             val url = URL(tokenUrl)
