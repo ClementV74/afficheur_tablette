@@ -1,8 +1,9 @@
 package com.clement.admin
 
-import android.os.Build
+
 import android.os.Bundle
 import android.util.Log
+import android.view.KeyEvent
 import android.view.View
 import android.widget.VideoView
 import androidx.activity.ComponentActivity
@@ -26,7 +27,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import com.clement.admin.R
 import androidx.compose.ui.viewinterop.AndroidView
 import coil.ImageLoader
 import coil.compose.AsyncImage
@@ -46,7 +46,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 
 class MainActivity : ComponentActivity() {
@@ -75,6 +74,22 @@ class MainActivity : ComponentActivity() {
                     SmartDisplayScreen(it) // Afficher l'écran intelligent
                 }
             }
+        }
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        return when (keyCode) {
+            KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_ESCAPE -> {
+                setContent {
+                    AdminTheme {
+                        ViewScreen(onScreenSelected = { screenId ->
+                            // Handle navigation if needed
+                        })
+                    }
+                }
+                true
+            }
+            else -> super.onKeyDown(keyCode, event)
         }
     }
 
@@ -172,7 +187,7 @@ class MainActivity : ComponentActivity() {
                 token?.let { // Si le token n'est pas nul
                     checkOnlineStatus(enligne) // Appeler la fonction ici
                 }
-                delay(10000) // Attendre 10 secondes
+                delay(5000) // Attendre 10 secondes
             }
         }
         // Lancer une coroutine pour actualiser les données toutes les 10 secondes
@@ -183,12 +198,12 @@ class MainActivity : ComponentActivity() {
                     fetchInfoData(infoUrl) { data -> infoList = data }
                     fetchAlertData(alertUrl) { alert -> alertStatus = alert }
                 }
-                delay(10000) // Mise à jour toutes les 10 secondes
+                delay(5000) // Mise à jour toutes les 10 secondes
             }
         }
 
         LaunchedEffect(currentIndex) { // Lancer une coroutine pour changer l'élément actuel
-            delay(10000)
+            delay(5000)
             currentIndex = (currentIndex + 1) % infoList.size
         }
 
@@ -245,7 +260,7 @@ class MainActivity : ComponentActivity() {
             // Dégradé de couleurs animé
             val color1 = remember { Color(0xFF6A7B8A) } // Gris-bleu
             val color2 = remember { Color(0xFF9DA5B1) } // Gris clair
-            val color3 = remember { Color(0xFFBDC8CC) } // Gris pâle
+
 
             // Animation pour changer de couleur
             val animatedColor by animateColorAsState(
