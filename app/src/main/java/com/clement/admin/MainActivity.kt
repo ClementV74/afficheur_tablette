@@ -1,9 +1,14 @@
 package com.clement.admin
 
-
+import com.clement.admin.ui.ViewScreen
 import android.os.Bundle
+import android.os.Handler
+import android.app.PendingIntent
+import android.content.Intent
+import android.os.Looper
 import android.util.Log
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.widget.VideoView
 import androidx.activity.ComponentActivity
@@ -34,7 +39,6 @@ import coil.compose.rememberAsyncImagePainter
 import coil.decode.GifDecoder
 import coil.request.ImageRequest
 import coil.size.Size
-import com.clement.admin.ui.ViewScreen
 import com.clement.admin.ui.theme.AdminTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -50,6 +54,8 @@ import androidx.compose.runtime.Composable
 
 class MainActivity : ComponentActivity() {
     private lateinit var tokenInfo: TokenInfo // Instance de TokenInfo pour gérer le token
+    private val handler = Handler(Looper.getMainLooper())
+    private var isLongPress = false
 
     override fun onCreate(savedInstanceState: Bundle?) { // Appelé lors de la création de l'activité
         super.onCreate(savedInstanceState)
@@ -75,18 +81,52 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+
+        // Ajouter un listener pour détecter le long appui sur l'écran
+        // Initialisation du Handler et de la variable pour détecter l'appui long
+        val handler = Handler(Looper.getMainLooper())
+        var isLongPress = false
+
+// Ajouter un listener pour détecter le long appui sur l'écran
+        window.decorView.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    isLongPress = true
+                    handler.postDelayed({
+                        if (isLongPress) {
+                            // Code pour relancer l'application
+                            val intent = Intent(this, MainActivity::class.java)
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                            val pendingIntent = PendingIntent.getActivity(
+                                this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                            )
+                            pendingIntent.send()
+                        }
+                    }, 1000) // Délai de 2 secondes pour détecter un appui long
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    isLongPress = false
+                }
+            }
+            true
+        }
+        }
+
+
+    private fun returnToViewScreen() {
+        setContent {
+            AdminTheme {
+                ViewScreen(onScreenSelected = { screenId ->
+                    // Handle navigation if needed
+                })
+            }
+        }
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         return when (keyCode) {
             KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_ESCAPE -> {
-                setContent {
-                    AdminTheme {
-                        ViewScreen(onScreenSelected = { screenId ->
-                            // Handle navigation if needed
-                        })
-                    }
-                }
+                returnToViewScreen()
                 true
             }
             else -> super.onKeyDown(keyCode, event)
@@ -219,20 +259,18 @@ class MainActivity : ComponentActivity() {
             return dayFormat.format(java.util.Date())
         }
 
-
         fun translateDayToFrench(day: String): String {
             return when (day.lowercase()) {
-                "monday" -> "Lundi"
-                "tuesday" -> "Mardi"
-                "wednesday" -> "Mercredi"
-                "thursday" -> "Jeudi"
-                "friday" -> "Vendredi"
-                "saturday" -> "Samedi"
-                "sunday" -> "Dimanche"
+                "lundi" -> "Lundi"
+                "mardi" -> "Mardi"
+                "mercredi" -> "Mercredi"
+                "jeudi" -> "Jeudi"
+                "vendredi" -> "Vendredi"
+                "samedi" -> "Samedi"
+                "dimanche" -> "Dimanche"
                 else -> day
             }
         }
-
 
         // Si une alerte est activée, afficher un écran rouge avec l'alerte correspondante
         if (checkAlertStatus(alertStatus)) {
@@ -261,7 +299,6 @@ class MainActivity : ComponentActivity() {
             val color1 = remember { Color(0xFF6A7B8A) } // Gris-bleu
             val color2 = remember { Color(0xFF9DA5B1) } // Gris clair
 
-
             // Animation pour changer de couleur
             val animatedColor by animateColorAsState(
                 targetValue = if (currentIndex % 2 == 0) color1 else color2,
@@ -271,20 +308,21 @@ class MainActivity : ComponentActivity() {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(animatedColor) // Utiliser uniquement une couleur ici
+                    .background(animatedColor) // Couleur d'arrière-plan
             ) {
                 // Ajouter le gif d'arrière-plan
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
-                        .data(R.drawable.backgroundgif) // Assurez-vous que c'est bien un GIF
+                        .data(R.drawable.backgroundgif) // Your GIF resource
                         .crossfade(true)
                         .size(Size.ORIGINAL)
                         .build(),
                     contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize(), // Ensure it fills the screen
+                    contentScale = ContentScale.Crop, // Crop the image to remove gray bands
                     imageLoader = ImageLoader.Builder(LocalContext.current)
                         .components {
-                            add(GifDecoder.Factory()) // Ajout du décoder pour les GIFs
+                            add(GifDecoder.Factory()) // Ensure GIF decoding
                         }
                         .build()
                 )
@@ -315,7 +353,6 @@ class MainActivity : ComponentActivity() {
                             text = currentItem.nom_salle,
                             color = Color.White,
                             fontSize = 40.sp,
-
                             modifier = Modifier.align(Alignment.CenterVertically)
                         )
                     }
@@ -355,14 +392,15 @@ class MainActivity : ComponentActivity() {
                                 )
                             } else {
                                 Image(
-                                    painter = rememberAsyncImagePainter(currentItem.contenu), // Utiliser Coil pour charger l'image
+                                    painter = rememberAsyncImagePainter(currentItem.contenu), // Coil image loader
                                     contentDescription = null,
                                     contentScale = ContentScale.Fit,
                                     modifier = Modifier
                                         .align(Alignment.Center)
-                                        .size(400.dp) // Ajuster la taille de l'image
-                                        .clip (RoundedCornerShape(30.dp)) // Appliquer des coins arrondis à l'image
+                                        .size(400.dp)
+                                        .clip(RoundedCornerShape(16.dp)) // Rounded corners for other images
                                 )
+
                             }
                         }
                     }
@@ -370,7 +408,6 @@ class MainActivity : ComponentActivity() {
 
                 Text(
                     text = currentTime,
-
                     fontFamily = FontFamily(Font(R.font.anurati_regular)),
                     color = Color.White,
                     fontSize = 52.sp,
